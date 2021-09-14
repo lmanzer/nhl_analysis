@@ -5,4 +5,7 @@ An analysis of NHL data
 1. Create virtual envirnonment: `python3 -m venv venv`
 2. Activate virtualenv (mac): source `source venv/bin/activate`
 3. Install python requirements `pip install -r requirements.txt`
-4. 
+   
+
+## Database Creation
+1. Run `python database/create_database.py`
