@@ -8,6 +8,7 @@ from settings import DATABASE_NAME
 logging.basicConfig(level='INFO')
 logger = logging.getLogger()
 
+
 def create_connection(db_file):
     """ create a database connection to a SQLite database """
     conn = None
