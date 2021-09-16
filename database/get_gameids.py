@@ -61,8 +61,6 @@ if __name__ == '__main__':
 
     all_schedules_not_processed = get_season_schedule(seasons_not_processed)
 
-    print(all_schedules_not_processed)
-
     all_schedules_not_processed.to_sql(
-            'games', engine, if_exists='append')
+            'game_schedules', engine, if_exists='append')
 
