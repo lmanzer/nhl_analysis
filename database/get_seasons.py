@@ -48,5 +48,3 @@ if __name__ == '__main__':
 
     create_seasons_table(seasons_df)
     
-    test = pd.read_sql_table('seasons', engine)
-    print(test.head())
