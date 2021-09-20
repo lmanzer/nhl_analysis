@@ -378,7 +378,16 @@ def insert_into_db(df, table_name, if_exists='append'):
         )
     else:
         logger.warning(f'No data to insert into {table_name}')
+def get_game_players(game_id, game_data):
+    # TODO: Ideally work out a team ID in here too, but this information is probably available in another table
+    game_players = game_data.get('players')
 
+    game_players_list = []
+    for id, player in game_players.items():
+        _player_dict = {}
+
+        _player_dict['player_id'] = player.get('id') 
+        _player_dict['game_id'] = game_id
 
 def get_game_data(games_df):
     '''Description: For each game in game schedules, obtain all information
@@ -404,6 +413,9 @@ def get_game_data(games_df):
         # Get Team Info
         team_game_info = get_team_info(game_id, game_data, live_data, venue_data)
 
+        # Get Game Players
+        game_players = get_game_players(game_id, game_data)
+
         # Get Player-Game Stats
         skater_stats_df, goalie_stats_df, scratches_stats_df = get_player_stats(
             live_data, game_data, game_id)
@@ -420,12 +432,14 @@ def get_game_data(games_df):
         ## Insert into DB
         insert_into_db(game_overview, 'games')
         insert_into_db(team_game_info, 'team_game_info')
+        insert_into_db(game_players, 'game_players')
         insert_into_db(skater_stats_df, 'skater_game_stats')
         insert_into_db(goalie_stats_df, 'goalie_game_stats')
         insert_into_db(scratches_stats_df, 'scratches_game_stats')
         insert_into_db(game_plays_info, 'game_plays_info')
         insert_into_db(game_play_players, 'game_play_players')
         insert_into_db(game_shift_info, 'game_shift_info')
+   
             
 if __name__ == '__main__':
     # TODO: potentially use pandas to take single json and break into readable format rather than bits and pieces
