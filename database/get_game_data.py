@@ -256,10 +256,140 @@ def get_team_info(game_id, game_data, live_data, venue_data):
     HoA_team_properties = pd.DataFrame().from_dict(home_properties, orient='index').T
     HoA_team_properties = HoA_team_properties.append(away_properties, ignore_index=True)
     
+    print(HoA_team_properties)
+
     return HoA_team_properties
 
 
+def get_game_plays(game_id, live_data, game_data):
+    allplays = live_data.get('plays').get('allPlays')
 
+    home_team_id = game_data.get(
+        'teams').get('home').get('id')
+    away_team_id = game_data.get(
+        'teams').get('away').get('id')
+ 
+    if len(allplays) != 0:
+        print(live_data.get('plays').get('allPlays')[0].keys())
+    print(live_data.get('plays').keys())
+
+    for plays in allplays:
+        print(plays)
+        print()
+
+        team = plays.get('team')
+        if team is None:
+            team_id = None
+        else:
+            team_id = team.get('id')
+
+        team_against_id = None
+        if team_id == home_team_id:
+            team_against_id = away_team_id
+        elif team_id == away_team_id:
+            team_against_id = home_team_id
+
+        strength = None
+        if plays.get('strength') is not None:
+            strength = plays.get('strength')
+
+        goals = plays.get('goals')
+        home_goals = None
+        away_goals = None
+        if  goals is not None:
+            home_goals = goals.get('home')
+            away_goals = goals.get('away')
+
+        gameWinningGoal = None
+        if plays.get('gameWinningGoal') is not None:
+            gameWinningGoal = plays.get('gameWinningGoal')
+
+        _play_data = {}
+        _play_data['play_id'] = str(game_id) + '_' + str(plays.get('about').get('eventId'))
+        _play_data['game_id'] = game_id 
+        _play_data['event_id'] = plays.get('about').get('eventId')
+        _play_data['team_id'] = team_id
+        _play_data['team_id_against'] = team_against_id 
+        _play_data['event'] = plays.get('result').get('event')
+        _play_data['secondaryType'] = plays.get('result').get('secondaryType')
+        
+        #some vars not in all event types:
+        _play_data['strength'] = strength
+        _play_data['gameWinningGoal'] = plays.get('gameWinningGoal')
+        _play_data['emptyNet'] = plays.get('emptyNet')
+        _play_data['penaltySeverity'] = plays.get('penaltySeverity')
+        _play_data['penaltyMinutes'] = plays.get('penaltyMinutes')
+
+        _play_data['x'] = plays.get('x')
+        _play_data['y'] = plays.get('y')
+        _play_data['period'] = plays.get('period')
+        _play_data['periodType'] = plays.get('periodType')
+        _play_data['periodTime'] = plays.get('periodTime')
+        _play_data['periodTimeRemaining'] = plays.get('periodTimeRemaining')
+        _play_data['dateTime'] = plays.get('dateTime')
+
+        _play_data['goals_home'] = home_goals
+        _play_data['goals_away'] = away_goals
+        
+        _play_data['description'] = plays.get('description')
+
+
+        print(_play_data)
+        print('--------')
+
+
+def get_game_plays_players(game_id, live_data, game_data):
+    allplays = live_data.get('plays').get('allPlays')
+
+    home_team_id = game_data.get(
+        'teams').get('home').get('id')
+    away_team_id = game_data.get(
+        'teams').get('away').get('id')
+
+    if len(allplays) != 0:
+        print(live_data.get('plays').get('allPlays')[0].keys())
+
+    game_play_players = []
+    for plays in allplays:
+        players = plays.get('players')
+        if players is None:
+            pass
+        else:
+            for player in players:
+                _game_play_player = {}
+                _game_play_player['play_id'] = str(
+                    game_id) + '_' + str(plays.get('about').get('eventId'))
+                _game_play_player['game_id'] = game_id
+                _game_play_player['player_id'] = player.get('player').get('id')
+                _game_play_player['player_type'] = player.get('playerType')
+                game_play_players.append(_game_play_player)
+    
+    game_play_players = pd.DataFrame(game_play_players)
+    return game_play_players
+
+
+def get_shift_data(toi_json):
+    shift_data = []
+    for player in toi_json.get('data'):
+        player_shift_data = {}
+
+        player_shift_data['game_id'] = player.get('gameId')
+        player_shift_data['player_id'] = player.get('playerId')
+        player_shift_data['period'] = player.get('period')
+        player_shift_data['shift_start'] = player.get('startTime')
+        player_shift_data['shift_end'] = player.get('endTime')
+        shift_data.append(player_shift_data)
+
+    shift_data_df = pd.DataFrame(shift_data)
+    return shift_data_df
+
+
+def get_game_data_from_link(link, headers={}):
+
+    req = urllib.request.Request(link, headers=headers)
+    url_json = json.loads(req.read().decode())
+
+    return url_json
 
 
 def get_game_data(games_df):
@@ -268,43 +398,55 @@ def get_game_data(games_df):
     skater_stats_all = pd.DataFrame()
     goalie_stats_all = pd.DataFrame()
     for _, game in games_df.iterrows():
-        game_link = url_prefix + game['link']
-        with urllib.request.urlopen(game_link) as url:
-            game_json = json.loads(url.read().decode())
+ 
+        # Get data from websites
+        toi_json = get_game_data_from_link(
+            url_toiData_prefix + str(game['gamePk']), headers=toi_hdr)
+        game_json = get_game_data_from_link(url_prefix + game['link'])
 
+        # Extract Useful Data Sets
         game_id = game['gamePk']
         game_data = game_json.get('gameData')
         live_data = game_json.get('liveData')
         venue_data = game_data.get('venue')
 
+
+
         # Get player data
-        # player_info = player_info(game_data)
+        player_info = get_player_info(game_data)
 
         # Get Game Overview
-        # game_overview = get_game_overview(
-        #     game_id, game_data, live_data, venue_data)
-        # all_game_overview = all_game_overview.append(
-        #     game_overview, ignore_index=True)
-        # all_game_overview.to_sql(
-        #     'games', engine, if_exists='replace')
+        game_overview = get_game_overview(
+            game_id, game_data, live_data, venue_data)
+        game_overview.to_sql(
+            'games', engine, if_exists='append')
 
         # Get Team Info
         get_team_info(game_id, game_data, live_data, venue_data)
 
-
         # Get Player-Game Stats
-        # skater_stats_df, goalie_stats_df, scratches_stats_df = get_player_stats(
-        #     live_data, game_data, game_id)
+        skater_stats_df, goalie_stats_df, scratches_stats_df = get_player_stats(
+            live_data, game_data, game_id)
 
-        # skater_stats_all = skater_stats_all.append(
-        #     skater_stats_df, ignore_index=True)
-        # skater_stats_all.to_sql(
-        #     'skater_game_stats', engine, if_exists='replace')
+        skater_stats_all = skater_stats_all.append(
+            skater_stats_df, ignore_index=True)
+        skater_stats_all.to_sql(
+            'skater_game_stats', engine, if_exists='replace')
 
-        # goalie_stats_all = goalie_stats_all.append(
-        #     goalie_stats_df, ignore_index=True)
-        # goalie_stats_all.to_sql(
-        #     'goalie_game_stats', engine, if_exists='replace')
+        goalie_stats_all = goalie_stats_all.append(
+            goalie_stats_df, ignore_index=True)
+        goalie_stats_all.to_sql(
+            'goalie_game_stats', engine, if_exists='replace')
+
+        # Get Play details
+        game_plays_info = get_game_plays(game_id, live_data, game_data)
+
+        # Get Play-Player
+        game_play_players = get_game_plays_players(game_id, live_data, game_data)
+        
+        # Get Shift Data
+        get_shift_data(toi_json)
+        
         break
         
 
