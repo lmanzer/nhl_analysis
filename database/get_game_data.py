@@ -441,14 +441,21 @@ def get_game_data(games_df):
         insert_into_db(game_shift_info, 'game_shift_info')
    
             
-if __name__ == '__main__':
-    # TODO: potentially use pandas to take single json and break into readable format rather than bits and pieces
-    games = pd.read_sql_table('game_schedules', engine)
-    
-    # games_test = games[games['gamePk'].astype(str).str[:3]=='201'].sample(1)
-    games_test = games[games['gamePk'] == 2011010091].sample(1)
-    games_test = games.sample(10)
-    print(games_test.gamePk)
-    get_game_data(games_test)
-    print('---------------------')
+def get_game_data():
+
+    game_schedules = import_data_from_sql('game_schedules')    
+    games = import_data_from_sql('games')
+
+    if games.empty :
+        missing_game_data = game_schedules
+    else:
+        missing_game_data = game_schedules[~game_schedules['game_id'].isin(games['game_id'])]    
+
+    games_sample = missing_game_data[missing_game_data['gameDate'].str[:4].astype(int) > 2005]#.head(5000)
+
+    get_game_info(games_sample)
+    # print('---------------------')
  
+
+if __name__ == '__main__':
+    get_game_data()
