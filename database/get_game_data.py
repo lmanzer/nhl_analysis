@@ -108,7 +108,8 @@ def get_game_overview(game_id, game_data, live_data, venue_data):
         'Unknown' if venue_data == None else venue_data.get('name'))
     game_properties['outcome'] = determine_outcome(live_data)
 
-    return game_properties
+    game_properties_df = pd.DataFrame().from_dict(game_properties, orient='index').T
+    return game_properties_df
 
 
 def get_player_stats_by_team(game_dict, is_home):
@@ -138,7 +139,6 @@ def get_player_stats_by_team(game_dict, is_home):
             else:
                 other_player = 'test'
                 print('--------Not goalie or skater -------')
-                # print(player_stats)
     _skater_stats_df = skater_stats_all_df[skater_stats_cols]
     _skater_stats_df['is_home'] = is_home
 
@@ -200,25 +200,42 @@ def get_player_info(game_data):
 
     player_info_df = pd.DataFrame.from_dict(player_dict).T
 
-    player_position_dict = player_info_df[['primaryPosition']].to_dict(orient='index')
+    # Extract useful primary position
+    if 'primaryPosition' in player_info_df.columns:
 
-    test = [[id, data.get('primaryPosition').get('abbreviation') ]
-    for id, data in player_position_dict.items()]
+        player_position_dict = player_info_df[['primaryPosition']].to_dict(orient='index')
+
+        primary_position_dict = [[id, data.get('primaryPosition').get('abbreviation') ]
+         for id, data in player_position_dict.items()]
     
-    position_df = pd.DataFrame(test, columns=['index', 'position'])
-    position_df.set_index('index', inplace=True)
-    print(position_df)
+        position_df = pd.DataFrame(
+            primary_position_dict, columns=['index', 'position'])
+        position_df.set_index('index', inplace=True)
 
-    player_w_position = pd.merge(player_info_df, 
-        position_df, 
-        left_index=True,
-        right_index=True)
+        player_w_position = pd.merge(player_info_df, 
+            position_df, 
+            left_index=True,
+            right_index=True)
+    else:
+        player_w_position = player_info_df.copy()
+        player_w_position['position'] = None
+        
+    # Remove remaining dicts from dataframe
+    if 'currentTeam' in player_w_position.columns:
+        player_w_position.drop(
+            ['currentTeam'], 
+            axis=1,
+            inplace=True)
+    if 'primaryPosition' in player_w_position.columns:
+        player_w_position.drop(
+            [ 'primaryPosition'],
+            axis=1,
+            inplace=True)
         
     return player_w_position
 
 
 def get_team_info_by_home_away(HoA, game_id, game_data, live_data, venue_data):
-    print(game_id)
 
     team_data = game_data.get('teams').get(HoA)
     team_stats = live_data.get('boxscore').get('teams').get(HoA)
@@ -272,12 +289,12 @@ def get_team_info(game_id, game_data, live_data, venue_data):
     HoA_team_properties = pd.DataFrame().from_dict(home_properties, orient='index').T
     HoA_team_properties = HoA_team_properties.append(away_properties, ignore_index=True)
     
-    print(HoA_team_properties)
-
     return HoA_team_properties
 
 
 def get_game_plays(game_id, live_data, game_data):
+    game_plays = []
+    
     allplays = live_data.get('plays').get('allPlays')
 
     home_team_id = game_data.get(
@@ -285,14 +302,7 @@ def get_game_plays(game_id, live_data, game_data):
     away_team_id = game_data.get(
         'teams').get('away').get('id')
  
-    if len(allplays) != 0:
-        print(live_data.get('plays').get('allPlays')[0].keys())
-    print(live_data.get('plays').keys())
-
     for plays in allplays:
-        print(plays)
-        print()
-
         team = plays.get('team')
         if team is None:
             team_id = None
@@ -349,9 +359,11 @@ def get_game_plays(game_id, live_data, game_data):
         
         _play_data['description'] = plays.get('description')
 
+        game_plays.append(_play_data)
 
-        print(_play_data)
-        print('--------')
+    game_plays_df = pd.DataFrame(game_plays)
+
+    return game_plays_df
 
 
 def get_game_plays_players(game_id, live_data, game_data):
@@ -361,9 +373,6 @@ def get_game_plays_players(game_id, live_data, game_data):
         'teams').get('home').get('id')
     away_team_id = game_data.get(
         'teams').get('away').get('id')
-
-    if len(allplays) != 0:
-        print(live_data.get('plays').get('allPlays')[0].keys())
 
     game_play_players = []
     for plays in allplays:
@@ -403,16 +412,25 @@ def get_shift_data(toi_json):
 def get_game_data_from_link(link, headers={}):
 
     req = urllib.request.Request(link, headers=headers)
-    url_json = json.loads(req.read().decode())
+    response = urllib.request.urlopen(req)
+    url_json = json.loads(response.read().decode())
 
     return url_json
 
 
-def get_game_data(games_df):
+def insert_into_db(df, table_name, if_exists='append'):
+    if not df.empty:
+        df.to_sql(
+            table_name, engine, if_exists=if_exists, index=False
+        )
+    else:
+        logger.warning(f'No data to insert into {table_name}')
 
-    all_game_overview = pd.DataFrame()
-    skater_stats_all = pd.DataFrame()
-    goalie_stats_all = pd.DataFrame()
+
+def get_game_data(games_df):
+    '''Description: For each game in game schedules, obtain all information
+    about the game for each team and player. Also grab all player information. '''
+
     for _, game in games_df.iterrows():
  
         # Get data from websites
@@ -426,54 +444,49 @@ def get_game_data(games_df):
         live_data = game_json.get('liveData')
         venue_data = game_data.get('venue')
 
-
-
         # Get player data
         player_info = get_player_info(game_data)
-
+      
         # Get Game Overview
         game_overview = get_game_overview(
             game_id, game_data, live_data, venue_data)
-        game_overview.to_sql(
-            'games', engine, if_exists='append')
-
+        
         # Get Team Info
-        get_team_info(game_id, game_data, live_data, venue_data)
+        team_game_info = get_team_info(game_id, game_data, live_data, venue_data)
 
         # Get Player-Game Stats
         skater_stats_df, goalie_stats_df, scratches_stats_df = get_player_stats(
             live_data, game_data, game_id)
-
-        skater_stats_all = skater_stats_all.append(
-            skater_stats_df, ignore_index=True)
-        skater_stats_all.to_sql(
-            'skater_game_stats', engine, if_exists='replace')
-
-        goalie_stats_all = goalie_stats_all.append(
-            goalie_stats_df, ignore_index=True)
-        goalie_stats_all.to_sql(
-            'goalie_game_stats', engine, if_exists='replace')
 
         # Get Play details
         game_plays_info = get_game_plays(game_id, live_data, game_data)
 
         # Get Play-Player
         game_play_players = get_game_plays_players(game_id, live_data, game_data)
-        
+
         # Get Shift Data
-        get_shift_data(toi_json)
-        
-        break
-        
+        game_shift_info = get_shift_data(toi_json)
 
-
+        ## Insert into DB
+        # NOTE: need to check for dups when inserting
+        insert_into_db(player_info, 'player_info')
+        insert_into_db(game_overview, 'games')
+        insert_into_db(team_game_info, 'team_game_info')
+        insert_into_db(skater_stats_df, 'skater_game_stats')
+        insert_into_db(goalie_stats_df, 'goalie_game_stats')
+        insert_into_db(scratches_stats_df, 'scratches_game_stats')
+        insert_into_db(game_plays_info, 'game_plays_info')
+        insert_into_db(game_play_players, 'game_play_players')
+        insert_into_db(game_shift_info, 'game_shift_info')
+            
 if __name__ == '__main__':
     # TODO: potentially use pandas to take single json and break into readable format rather than bits and pieces
     games = pd.read_sql_table('game_schedules', engine)
-
-    games_test = games[games['gamePk']==1967020088]
-    print(games_test)
-
+    
+    # games_test = games[games['gamePk'].astype(str).str[:3]=='201'].sample(1)
+    games_test = games[games['gamePk'] == 2011010091].sample(1)
+    games_test = games.sample(10)
+    print(games_test.gamePk)
     get_game_data(games_test)
     print('---------------------')
  
