@@ -28,13 +28,6 @@ goalie_stats_cols = ["player_id", "timeOnIce", "assists", "goals", "shots",
                      "savePercentage",  "powerPlaySavePercentage",
                      "evenStrengthSavePercentage"]
 
-player_info_cols = ['id', 
-                    'firstName', 'lastName', 'nationality', 'birthCity',
-                    'primaryPosition.abbreviation',
-                    'birthDate',
-                    'birthStateProvince',
-                    'height',
-                    'weight', 'shootsCatches']
 
 
 engine = sa.create_engine(f'sqlite:///{DATABASE_NAME}')
@@ -193,46 +186,6 @@ def get_player_stats(live_data, game_data, game_id):
         [away_scratches_stats_df, home_scratches_stats_df])
 
     return skater_stats_df, goalie_stats_df, scratches_stats_df
-
-
-def get_player_info(game_data):
-    player_dict = game_data.get('players')
-
-    player_info_df = pd.DataFrame.from_dict(player_dict).T
-
-    # Extract useful primary position
-    if 'primaryPosition' in player_info_df.columns:
-
-        player_position_dict = player_info_df[['primaryPosition']].to_dict(orient='index')
-
-        primary_position_dict = [[id, data.get('primaryPosition').get('abbreviation') ]
-         for id, data in player_position_dict.items()]
-    
-        position_df = pd.DataFrame(
-            primary_position_dict, columns=['index', 'position'])
-        position_df.set_index('index', inplace=True)
-
-        player_w_position = pd.merge(player_info_df, 
-            position_df, 
-            left_index=True,
-            right_index=True)
-    else:
-        player_w_position = player_info_df.copy()
-        player_w_position['position'] = None
-        
-    # Remove remaining dicts from dataframe
-    if 'currentTeam' in player_w_position.columns:
-        player_w_position.drop(
-            ['currentTeam'], 
-            axis=1,
-            inplace=True)
-    if 'primaryPosition' in player_w_position.columns:
-        player_w_position.drop(
-            [ 'primaryPosition'],
-            axis=1,
-            inplace=True)
-        
-    return player_w_position
 
 
 def get_team_info_by_home_away(HoA, game_id, game_data, live_data, venue_data):
@@ -443,10 +396,6 @@ def get_game_data(games_df):
         game_data = game_json.get('gameData')
         live_data = game_json.get('liveData')
         venue_data = game_data.get('venue')
-
-        # Get player data
-        player_info = get_player_info(game_data)
-      
         # Get Game Overview
         game_overview = get_game_overview(
             game_id, game_data, live_data, venue_data)
@@ -468,8 +417,6 @@ def get_game_data(games_df):
         game_shift_info = get_shift_data(toi_json)
 
         ## Insert into DB
-        # NOTE: need to check for dups when inserting
-        insert_into_db(player_info, 'player_info')
         insert_into_db(game_overview, 'games')
         insert_into_db(team_game_info, 'team_game_info')
         insert_into_db(skater_stats_df, 'skater_game_stats')
