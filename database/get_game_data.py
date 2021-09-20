@@ -6,8 +6,12 @@ import urllib
 import urllib.request
 import sqlite3
 import sqlalchemy as sa
+from timeit import default_timer as timer
+
+from tqdm import tqdm
 
 from settings import DATABASE_NAME
+from misc_functions import import_data_from_sql
 
 pd.set_option('display.max_columns', None)
 
@@ -376,8 +380,10 @@ def insert_into_db(df, table_name, if_exists='append'):
         df.to_sql(
             table_name, engine, if_exists=if_exists, index=False
         )
-    else:
-        logger.warning(f'No data to insert into {table_name}')
+    # else:
+    #     logger.warning(f'No data to insert into {table_name}')
+
+
 def get_game_players(game_id, game_data):
     # TODO: Ideally work out a team ID in here too, but this information is probably available in another table
     game_players = game_data.get('players')
@@ -389,11 +395,18 @@ def get_game_players(game_id, game_data):
         _player_dict['player_id'] = player.get('id') 
         _player_dict['game_id'] = game_id
 
-def get_game_data(games_df):
+        game_players_list.append(_player_dict)
+
+    game_players_df = pd.DataFrame(game_players_list)
+
+    return game_players_df
+
+
+def get_game_info(games_df):
     '''Description: For each game in game schedules, obtain all information
     about the game for each team and player. Also grab all player information. '''
 
-    for _, game in games_df.iterrows():
+    for _, game in tqdm(games_df.iterrows(), total=len(games_df)):
  
         # Get data from websites
         toi_json = get_game_data_from_link(
