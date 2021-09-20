@@ -40,15 +40,20 @@ player_info_cols = ['id',
 engine = sa.create_engine(f'sqlite:///{DATABASE_NAME}')
 
 url_prefix = 'https://statsapi.web.nhl.com'
+url_toiData_prefix = "https://api.nhle.com/stats/rest/en/shiftcharts?cayenneExp=gameId="
 
-def determine_outcome(data_json):
-    # TODO: What the last period is like when the result is settled in shootout
-    home_goals = data_json.get('linescore').get(
+toi_hdr = {
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+}
+
+
+def get_game_winner(live_data):
+    home_goals = live_data.get('linescore').get(
         'teams').get('home').get('goals')
-    away_goals = data_json.get('linescore').get(
+    away_goals = live_data.get('linescore').get(
         'teams').get('away').get('goals')
- 
-    last_period = data_json.get('linescore').get('currentPeriod')
+
+    last_period = live_data.get('linescore').get('currentPeriod')
 
     if home_goals > away_goals:
         winner = 'home'
@@ -56,7 +61,11 @@ def determine_outcome(data_json):
         winner = 'away'
     else:
         winner = 'tie'
-    
+
+    return winner
+
+def game_settled_in(live_data):
+    last_period = live_data.get('linescore').get('currentPeriod')
     if last_period > 3:
         period = 'OT/Shootout'
         # Add  shootout here if possible
@@ -64,6 +73,16 @@ def determine_outcome(data_json):
         period = 'REG'
     else:
         period = 'TBC'
+    
+    return period
+
+
+def determine_outcome(live_data):
+    # TODO: What the last period is like when the result is settled in shootout
+    winner = get_game_winner(live_data)
+    
+    last_period = live_data.get('linescore').get('currentPeriod')
+    period = game_settled_in(live_data)
 
     return winner + ' win ' + period + str(last_period)
 
@@ -211,15 +230,12 @@ def get_team_info_by_home_away(HoA, game_id, game_data, live_data, venue_data):
     else: 
         head_coach = team_stats.get(
             'coaches')[0].get('person').get('fullName')
-
-    print('---')
     team_properties = {}
     team_properties['game_id'] = game_id
     team_properties['team_id'] = team_data.get('id')
     team_properties['HoA'] = HoA
-    # Need to figure this out: func_helper_get_winner & func_helper_get_settled_in
-    team_properties['winner'] = 'TBD'
-    team_properties['settled_in'] = 'TBD'
+    team_properties['winner'] = get_game_winner(live_data)
+    team_properties['settled_in'] = game_settled_in(live_data)
     team_properties['head_coach'] = head_coach
     team_properties['goals'] = team_stats.get(
         'teamStats').get('teamSkaterStats').get('goals')
