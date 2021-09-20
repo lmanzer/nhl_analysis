@@ -9,7 +9,7 @@ logging.basicConfig(level='INFO')
 logger = logging.getLogger()
 
 
-def create_connection(db_file):
+def create_database(db_file):
     """ create a database connection to a SQLite database """
     conn = None
     try:
@@ -24,4 +24,4 @@ def create_connection(db_file):
 
 
 if __name__ == '__main__':
-    create_connection(DATABASE_NAME)
+    create_database(DATABASE_NAME)
