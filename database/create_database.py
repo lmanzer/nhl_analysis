@@ -5,6 +5,9 @@ import logging
 
 from settings import DATABASE_NAME
 
+from get_seasons import get_seasons
+from get_game_schedules import get_game_schedules
+
 logging.basicConfig(level='INFO')
 logger = logging.getLogger()
 
@@ -25,3 +28,5 @@ def create_database(db_file):
 
 if __name__ == '__main__':
     create_database(DATABASE_NAME)
+    get_seasons()
+    get_game_schedules()
