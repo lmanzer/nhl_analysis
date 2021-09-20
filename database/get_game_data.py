@@ -11,7 +11,7 @@ from timeit import default_timer as timer
 from tqdm import tqdm
 
 from settings import DATABASE_NAME
-from misc_functions import import_data_from_sql
+from misc_functions import import_data_from_sql, get_game_data_from_link
 
 pd.set_option('display.max_columns', None)
 
@@ -82,6 +82,7 @@ def determine_outcome(live_data):
     period = game_settled_in(live_data)
 
     return winner + ' win ' + period + str(last_period)
+
 
 def get_game_overview(game_id, game_data, live_data, venue_data):
     game_properties = {}
@@ -237,7 +238,7 @@ def get_team_info_by_home_away(HoA, game_id, game_data, live_data, venue_data):
     return team_properties
 
 
-def get_team_info(game_id, game_data, live_data, venue_data):
+def get_team_game_info(game_id, game_data, live_data, venue_data):
     home_properties = get_team_info_by_home_away(
         'home', game_id, game_data, live_data, venue_data)
     away_properties = get_team_info_by_home_away(
@@ -366,13 +367,7 @@ def get_shift_data(toi_json):
     return shift_data_df
 
 
-def get_game_data_from_link(link, headers={}):
 
-    req = urllib.request.Request(link, headers=headers)
-    response = urllib.request.urlopen(req)
-    url_json = json.loads(response.read().decode())
-
-    return url_json
 
 
 def insert_into_db(df, table_name, if_exists='append'):
@@ -424,7 +419,7 @@ def get_game_info(games_df):
             game_id, game_data, live_data, venue_data)
         
         # Get Team Info
-        team_game_info = get_team_info(game_id, game_data, live_data, venue_data)
+        team_game_info = get_team_game_info(game_id, game_data, live_data, venue_data)
 
         # Get Game Players
         game_players = get_game_players(game_id, game_data)
