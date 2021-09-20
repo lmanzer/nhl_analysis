@@ -82,7 +82,7 @@ def determine_outcome(live_data):
 def get_game_overview(game_id, game_data, live_data, venue_data):
     game_properties = {}
     # Get Game Properties
-    game_properties['gamePk'] = game_id
+    game_properties['game_id'] = game_id
     game_properties['season'] = game_data.get('game').get('season')
     game_properties['type'] = game_data.get('game').get('type')
     game_properties['date_time_GMT'] = game_data.get(
@@ -388,14 +388,15 @@ def get_game_data(games_df):
  
         # Get data from websites
         toi_json = get_game_data_from_link(
-            url_toiData_prefix + str(game['gamePk']), headers=toi_hdr)
+            url_toiData_prefix + str(game['game_id']), headers=toi_hdr)
         game_json = get_game_data_from_link(url_prefix + game['link'])
 
         # Extract Useful Data Sets
-        game_id = game['gamePk']
+        game_id = game['game_id']
         game_data = game_json.get('gameData')
         live_data = game_json.get('liveData')
         venue_data = game_data.get('venue')
+ 
         # Get Game Overview
         game_overview = get_game_overview(
             game_id, game_data, live_data, venue_data)

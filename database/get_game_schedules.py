@@ -37,7 +37,7 @@ def get_schedule(season_id):
     return games_df
 
 
-def get_season_schedule(df_season):
+def get_games_schedules_from_seasons(df_season):
     all_schedules = pd.DataFrame([])
     for _,row in df_season.iterrows():
         season_id = row['seasonId']
@@ -48,19 +48,22 @@ def get_season_schedule(df_season):
         
         season_schedule_selected = season_schedule[[
             'gamePk', 'link', 'gameType', 'season', 'gameDate']]
+        # season_schedule_selected.reset_index(inplace=True)
 
-        all_schedules = all_schedules.append(season_schedule_selected)                                                    
+        all_schedules = all_schedules.append(
+            season_schedule_selected)
         
     return all_schedules
 
 
-if __name__ == '__main__':
+def get_game_schedules():
+
     seasons = pd.read_sql_table('seasons', engine)
 
-    seasons_not_processed = seasons[seasons['processed_all_games']==0]
-
-    all_schedules_not_processed = get_season_schedule(seasons_not_processed)
-
-    all_schedules_not_processed.to_sql(
-            'game_schedules', engine, if_exists='append')
+    all_schedules = get_games_schedules_from_seasons(seasons)
+    all_schedules.rename(columns={'gamePk': 'game_id'}, inplace=True)
+    
+    print(all_schedules)
+    all_schedules.to_sql(
+            'game_schedules', engine, if_exists='append', index=False)
 

@@ -29,22 +29,14 @@ def get_all_seasons():
 
 
 def create_seasons_table(df):
-    seasons_df.to_sql('seasons',engine, if_exists='replace')
+    df.to_sql('seasons',engine, if_exists='replace', index=False)
     logger.info('Injected Seasons table into DB')
 
 
-def add_monitoring_columns(df_raw):
-    df = df_raw.copy()
-    df['processed_games'] = 0
-    df['processed_all_games'] = 0
-    df['in_progress'] = 0
 
-    return df
+def get_seasons():
 
-if __name__ == '__main__':
-    seasons_raw_df = get_all_seasons()
-
-    seasons_df = add_monitoring_columns(seasons_raw_df)
+    seasons_df = get_all_seasons()
 
     create_seasons_table(seasons_df)
     
