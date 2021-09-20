@@ -195,7 +195,7 @@ def get_player_stats(live_data, game_data, game_id):
     return skater_stats_df, goalie_stats_df, scratches_stats_df
 
 
-def player_info(game_data):
+def get_player_info(game_data):
     player_dict = game_data.get('players')
 
     player_info_df = pd.DataFrame.from_dict(player_dict).T
