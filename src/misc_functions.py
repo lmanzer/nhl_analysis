@@ -1,6 +1,9 @@
 import pandas as pd
 import sqlalchemy as sa
 
+import urllib
+import json
+
 from settings import DATABASE_NAME
 
 engine = sa.create_engine(f'sqlite:///{DATABASE_NAME}')

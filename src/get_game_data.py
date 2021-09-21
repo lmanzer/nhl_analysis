@@ -450,6 +450,9 @@ def get_game_info(games_df):
    
             
 def get_game_data():
+    import datetime
+
+    today = datetime.datetime.today()
 
     game_schedules = import_data_from_sql('game_schedules')    
     games = import_data_from_sql('games')
@@ -459,9 +462,15 @@ def get_game_data():
     else:
         missing_game_data = game_schedules[~game_schedules['game_id'].isin(games['game_id'])]    
 
-    games_sample = missing_game_data[missing_game_data['gameDate'].str[:4].astype(int) > 2005]#.head(5000)
+    games_sample = missing_game_data[
+        missing_game_data['gameDate'].str[:4].astype(int) > 2005]#.head(5000)
 
-    get_game_info(games_sample)
+    # Remove future games
+    games_rm_future = missing_game_data[
+        missing_game_data['gameDate'].str[:10] < str(today)[
+        0:10]]
+    
+    get_game_info(games_rm_future)
     # print('---------------------')
  
 
