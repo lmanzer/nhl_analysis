@@ -24,7 +24,7 @@ skater_stats_cols = ["player_id","timeOnIce", "assists", "goals", "shots", "hits
                      "takeaways",  "giveaways", "shortHandedGoals", "shortHandedAssists",
                      "blocked",
                      "plusMinus", "evenTimeOnIce", "shortHandedTimeOnIce",
-                     "powerPlayTimeOnIce", 'test_col']
+                     "powerPlayTimeOnIce", 'test_col'] # REMOVE TEST COL
 goalie_stats_cols = ["player_id", "timeOnIce", "assists", "goals", "shots",
                      "saves", "pim", "powerPlaySaves", "shortHandedSaves",
                      "evenSaves", "shortHandedShotsAgainst",

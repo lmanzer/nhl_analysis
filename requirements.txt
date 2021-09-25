@@ -4,3 +4,4 @@ ipython
 ipykernel
 sqlalchemy
 tqdm
+seaborn

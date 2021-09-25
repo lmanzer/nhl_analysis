@@ -30,7 +30,6 @@ player_info_cols = ['player_id',
 engine = sa.create_engine(f'sqlite:///{DATABASE_NAME}')
 
 url_prefix = 'https://statsapi.web.nhl.com'
-url_toiData_prefix = "https://api.nhle.com/stats/rest/en/shiftcharts?cayenneExp=gameId="
 people_prefix = '/api/v1/people/'
 
 
@@ -41,6 +40,9 @@ def get_player_info(player):
     player_id = player['player_id']
     player_url = url_prefix + people_prefix + str(player_id)
     player_details_dict = get_game_data_from_link(player_url)
+
+    if player_details_dict is None:
+        return None
 
     player_dict = player_details_dict.get('people')
     player_info_df = player_info_df.append(player_dict[0], ignore_index=True)
@@ -125,12 +127,14 @@ def get_player_data():
 
     # Get player data     
     for _, player in tqdm(players_ids.iterrows(), total=players_ids.shape[0]):
+        print(player['player_id'])
         player_info_updated = get_player_info(player)
 
-        player_info_updated_cleaned = player_info_updated[~player_info_updated['firstName'].isna()]
-        if not player_info_updated_cleaned.empty:
-            insert_into_db(
-                player_info_updated_cleaned[player_info_cols], 'player_info')
+        if player_info_updated is not None:
+            player_info_updated_cleaned = player_info_updated[~player_info_updated['firstName'].isna()]
+            if not player_info_updated_cleaned.empty:
+                insert_into_db(
+                    player_info_updated_cleaned[player_info_cols], 'player_info')
 
 
 if __name__ == '__main__':
