@@ -88,10 +88,12 @@ def get_player_info(player):
 def get_game_data_from_link(link, headers={}):
 
     req = urllib.request.Request(link, headers=headers)
-    response = urllib.request.urlopen(req)
-    url_json = json.loads(response.read().decode())
-
-    return url_json
+    try:
+        response = urllib.request.urlopen(req)
+        url_json = json.loads(response.read().decode())
+        return url_json
+    except:
+        return None
 
 
 def insert_into_db(df, table_name, if_exists='append'):
