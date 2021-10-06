@@ -11,7 +11,7 @@ from timeit import default_timer as timer
 from tqdm import tqdm
 
 from settings import DATABASE_NAME
-from misc_functions import import_data_from_sql, get_game_data_from_link
+from misc_functions import import_data_from_sql, get_json_data_from_link, insert_into_db
 
 pd.set_option('display.max_columns', None)
 
@@ -60,6 +60,7 @@ def get_game_winner(live_data):
         winner = 'tie'
 
     return winner
+
 
 def game_settled_in(live_data):
     last_period = live_data.get('linescore').get('currentPeriod')
@@ -367,18 +368,6 @@ def get_shift_data(toi_json):
     return shift_data_df
 
 
-
-
-
-def insert_into_db(df, table_name, if_exists='append'):
-    if not df.empty:
-        df.to_sql(
-            table_name, engine, if_exists=if_exists, index=False
-        )
-    # else:
-    #     logger.warning(f'No data to insert into {table_name}')
-
-
 def get_game_players(game_id, game_data):
     # TODO: Ideally work out a team ID in here too, but this information is probably available in another table
     game_players = game_data.get('players')
@@ -404,9 +393,9 @@ def get_game_info(games_df):
     for _, game in tqdm(games_df.iterrows(), total=len(games_df)):
  
         # Get data from websites
-        toi_json = get_game_data_from_link(
+        toi_json = get_json_data_from_link(
             url_toiData_prefix + str(game['game_id']), headers=toi_hdr)
-        game_json = get_game_data_from_link(url_prefix + game['link'])
+        game_json = get_json_data_from_link(url_prefix + game['link'])
 
         # Extract Useful Data Sets
         game_id = game['game_id']
@@ -474,5 +463,4 @@ def get_game_data():
     # print('---------------------')
  
 
-if __name__ == '__main__':
-    get_game_data()
+

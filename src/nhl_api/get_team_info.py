@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from tqdm import tqdm
 
 from settings import DATABASE_NAME
-from misc_functions import import_data_from_sql, get_game_data_from_link
+from misc_functions import import_data_from_sql, get_json_data_from_link
 
 pd.set_option('display.max_columns', None)
 
@@ -39,7 +39,7 @@ def get_team_info(team):
 
     team_id = team['team_id']
     team_url = url_prefix + teams_prefix + str(team_id)
-    team_json = get_game_data_from_link(team_url)
+    team_json = get_json_data_from_link(team_url)
 
     team_data_json = team_json.get('teams')[0]
     
@@ -70,7 +70,7 @@ def get_team_info(team):
     team_info_df = pd.DataFrame().from_dict(team_selected, orient='index').T #, columns=team_info_cols)
     return team_info_df
 
-def get_game_data_from_link(link, headers={}):
+def get_json_data_from_link(link, headers={}):
 
     req = urllib.request.Request(link, headers=headers)
     response = urllib.request.urlopen(req)

@@ -5,8 +5,8 @@ import logging
 
 from settings import DATABASE_NAME
 
-from get_seasons import get_seasons
-from get_game_schedules import get_game_schedules
+from nhl_api.get_seasons import get_seasons
+from nhl_api.get_game_schedules import get_game_schedules
 
 logging.basicConfig(level='INFO')
 logger = logging.getLogger()

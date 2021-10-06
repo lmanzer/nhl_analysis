@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from tqdm import tqdm
 
 from settings import DATABASE_NAME
-from misc_functions import import_data_from_sql, get_game_data_from_link
+from misc_functions import import_data_from_sql, get_json_data_from_link, insert_into_db
 
 pd.set_option('display.max_columns', None)
 
@@ -39,7 +39,7 @@ def get_player_info(player):
     
     player_id = player['player_id']
     player_url = url_prefix + people_prefix + str(player_id)
-    player_details_dict = get_game_data_from_link(player_url)
+    player_details_dict = get_json_data_from_link(player_url)
 
     if player_details_dict is None:
         return None
@@ -87,26 +87,6 @@ def get_player_info(player):
     return player_w_position
 
 
-def get_game_data_from_link(link, headers={}):
-
-    req = urllib.request.Request(link, headers=headers)
-    try:
-        response = urllib.request.urlopen(req)
-        url_json = json.loads(response.read().decode())
-        return url_json
-    except:
-        return None
-
-
-def insert_into_db(df, table_name, if_exists='append'):
-    if not df.empty:
-        df.to_sql(
-            table_name, engine, if_exists=if_exists, index=False
-        )
-    else:
-        logger.warning(f'No data to insert into {table_name}')
-
-
 def get_player_data():
 
     player_games = import_data_from_sql('game_players')
@@ -137,5 +117,4 @@ def get_player_data():
                     player_info_updated_cleaned[player_info_cols], 'player_info')
 
 
-if __name__ == '__main__':
-    get_player_data()
+    
